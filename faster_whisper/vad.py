@@ -369,8 +369,8 @@ class SileroVADModel:
 
         batched_audio = audio.reshape(-1, num_samples)
         context = batched_audio[..., -context_size_samples:]
-        context[-1] = 0
         context = np.roll(context, 1, 0)
+        context[0] = 0
         batched_audio = np.concatenate([context, batched_audio], 1)
 
         batched_audio = batched_audio.reshape(-1, num_samples + context_size_samples)
