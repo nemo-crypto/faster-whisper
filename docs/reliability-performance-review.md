@@ -35,3 +35,13 @@ Honor `onesided=False` for real input with a full FFT, recognize complex windows
 Nine regression cases compare short/full windows and real/complex input against explicitly framed NumPy FFT results, plus rejection of a one-sided complex window. Before the fix, six failed and three passed. This is a numerical-correctness change, with no new speedup claim.
 
 Full suite after the follow-up: **52 passed**. Black, isort, and Flake8 checks passed.
+
+## Follow-up: VAD input ownership, timestamp lookup, and chunk bounds
+
+VAD context preparation now zeros only the first row of the shifted context copy, preserving the final 64 samples of caller audio and accepting read-only arrays. Four regression cases verify both audio windows and their previous-window context.
+
+SpeechTimestampsMap uses binary search for both start/end boundaries, preserving duplicate endpoints, empty maps, clamping, and silence-restoration behavior. On a 10,000-chunk map, median time for 1,000 lookups over five repetitions changed from 0.02190/0.05418 seconds (start/end) to 0.0001395/0.0001444 seconds. This only measures lookup, not inference.
+
+Chunk collection now rejects negative, reversed, out-of-bounds, boolean or fractional sample offsets before slicing, avoiding silent truncation/negative indexing and mismatched duration metadata. Valid NumPy integer offsets and zero-length chunks retain their behavior. Eight invalid-input regression cases failed before the change; two valid-input controls passed.
+
+Full suite after the follow-up: **73 passed**. Black, isort, Flake8 and diff checks passed.
