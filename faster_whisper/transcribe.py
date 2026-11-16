@@ -7,6 +7,7 @@ import zlib
 from dataclasses import asdict, dataclass
 from inspect import signature
 from math import ceil
+from numbers import Integral
 from typing import BinaryIO, Iterable, List, Optional, Tuple, Union
 from warnings import warn
 
@@ -376,6 +377,13 @@ class BatchedInferencePipeline:
             - an instance of TranscriptionInfo
         """
 
+        if (
+            isinstance(batch_size, bool)
+            or not isinstance(batch_size, Integral)
+            or batch_size <= 0
+        ):
+            raise ValueError("batch_size must be a positive integer")
+
         sampling_rate = self.model.feature_extractor.sampling_rate
 
         if multilingual and not self.model.model.is_multilingual:
@@ -582,40 +590,41 @@ class BatchedInferencePipeline:
         self, features, tokenizer, chunks_metadata, batch_size, options, log_progress
     ):
         pbar = tqdm(total=len(features), disable=not log_progress, position=0)
-        seg_idx = 0
-        for i in range(0, len(features), batch_size):
-            results = self.forward(
-                features[i : i + batch_size],
-                tokenizer,
-                chunks_metadata[i : i + batch_size],
-                options,
-            )
+        try:
+            seg_idx = 0
+            for i in range(0, len(features), batch_size):
+                results = self.forward(
+                    features[i : i + batch_size],
+                    tokenizer,
+                    chunks_metadata[i : i + batch_size],
+                    options,
+                )
 
-            for result in results:
-                for segment in result:
-                    seg_idx += 1
-                    yield Segment(
-                        seek=segment["seek"],
-                        id=seg_idx,
-                        text=segment["text"],
-                        start=round(segment["start"], 3),
-                        end=round(segment["end"], 3),
-                        words=(
-                            None
-                            if not options.word_timestamps
-                            else [Word(**word) for word in segment["words"]]
-                        ),
-                        tokens=segment["tokens"],
-                        avg_logprob=segment["avg_logprob"],
-                        no_speech_prob=segment["no_speech_prob"],
-                        compression_ratio=segment["compression_ratio"],
-                        temperature=options.temperatures[0],
-                    )
+                for result in results:
+                    for segment in result:
+                        seg_idx += 1
+                        yield Segment(
+                            seek=segment["seek"],
+                            id=seg_idx,
+                            text=segment["text"],
+                            start=round(segment["start"], 3),
+                            end=round(segment["end"], 3),
+                            words=(
+                                None
+                                if not options.word_timestamps
+                                else [Word(**word) for word in segment["words"]]
+                            ),
+                            tokens=segment["tokens"],
+                            avg_logprob=segment["avg_logprob"],
+                            no_speech_prob=segment["no_speech_prob"],
+                            compression_ratio=segment["compression_ratio"],
+                            temperature=options.temperatures[0],
+                        )
 
-                pbar.update(1)
-
-        pbar.close()
-        self.last_speech_timestamp = 0.0
+                    pbar.update(1)
+        finally:
+            pbar.close()
+            self.last_speech_timestamp = 0.0
 
 
 class WhisperModel:
@@ -1837,6 +1846,13 @@ class WhisperModel:
             language_probability: Probability of the detected language.
             all_language_probs: List of tuples with all language names and probabilities.
         """
+        if (
+            isinstance(language_detection_segments, bool)
+            or not isinstance(language_detection_segments, Integral)
+            or language_detection_segments <= 0
+        ):
+            raise ValueError("language_detection_segments must be a positive integer")
+
         assert (
             audio is not None or features is not None
         ), "Either `audio` or `features` must be provided."

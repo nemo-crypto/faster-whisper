@@ -6,6 +6,8 @@ __pycache__/
 
 # Distribution / Packaging
 venv/
+.venv/
+*.egg-info/
 
 # Unit Test
 .pytest_cache/
