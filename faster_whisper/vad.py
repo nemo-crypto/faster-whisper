@@ -3,6 +3,7 @@ import functools
 import os
 
 from dataclasses import dataclass
+from numbers import Integral
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -241,6 +242,18 @@ def collect_chunks(
     current_slices = [np.array([], dtype=np.float32)]
 
     for chunk in chunks:
+        start, end = chunk["start"], chunk["end"]
+        if (
+            isinstance(start, bool)
+            or isinstance(end, bool)
+            or not isinstance(start, Integral)
+            or not isinstance(end, Integral)
+            or not 0 <= start <= end <= len(audio)
+        ):
+            raise ValueError(
+                "Invalid chunk sample range: expected integer offsets satisfying "
+                f"0 <= start <= end <= {len(audio)}, got {start!r}, {end!r}"
+            )
         if chunk["end"] - chunk["start"] > max_duration * sampling_rate:
             raise ValueError(
                 f"Chunk starting at {chunk['start'] / sampling_rate:.2f}s "

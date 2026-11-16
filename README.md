@@ -10,7 +10,7 @@ A personal fork of [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-wh
 
 适合音频转文字、多语言识别、字幕处理及批量转录。它是语音识别（ASR / speech-to-text）项目，不负责声音克隆或文本转语音。本仓库是社区贡献 fork；模型能力和主要推理引擎来自原项目。
 
-优化代码位于 `improve/reliability-performance-20261116`，独立上游贡献位于 `fix/reliability-review`。PyPI 的 `pip install faster-whisper` 安装官方发行包，不会自动包含此 fork 的待合并修改。
+已验证的集成优化位于默认 `master` 分支；首轮独立上游贡献位于 `fix/reliability-review`。PyPI 的 `pip install faster-whisper` 安装官方发行包，不会自动包含此 fork 的待合并修改。
 
 ## 优化说明
 
@@ -20,6 +20,8 @@ A personal fork of [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-wh
 | 非正数、布尔值或小数 batch size / 检测段数 | 提前报清晰的参数错误 | 避免进入推理流程后才出现间接异常 |
 | 裁剪 Mel 特征 | 使用切片后复制，保留独立数组语义 | 减少局部裁剪开销，不改变输出值和 dtype |
 | STFT 完整频谱、复数窗口、短矩形窗口 | 按参数选择正确 FFT 和窗口 | 修复非默认组合的数值结果或异常 |
+| VAD 上下文与时间戳映射 | 保留输入音频原值，边界查找使用二分搜索 | 支持只读音频数组，减少长音频片段查找开销 |
+| 非法片段范围 | 在切片前拒绝越界、倒序或非整数采样索引 | 避免实际音频长度与时间戳元数据不一致 |
 | 负裁剪长度 | 明确拒绝 | 调用错误更容易定位 |
 
 ## 本地运行
@@ -27,7 +29,7 @@ A personal fork of [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-wh
 原项目要求 Python 3.9+；本 fork 使用 Python 3.12 验证。下面以 CPU 为例：
 
 ```sh
-git clone --branch improve/reliability-performance-20261116 https://github.com/nemo-crypto/faster-whisper.git
+git clone https://github.com/nemo-crypto/faster-whisper.git
 cd faster-whisper
 python3 -m venv .venv
 source .venv/bin/activate
@@ -55,7 +57,7 @@ isort --check-only .
 flake8 .
 ```
 
-集成分支完整测试 **52 项通过**，包括 CPU 推理；格式和静态风格检查通过。裁剪微基准中 1,000 次调用的中位耗时为 0.4758 → 0.01203 秒，仅针对特征裁剪，不代表整体识别快约 40 倍。
+集成分支完整测试 **73 项通过**，包括 CPU 推理；格式和静态风格检查通过。裁剪微基准中 1,000 次调用的中位耗时为 0.4758 → 0.01203 秒，仅针对特征裁剪，不代表整体识别快约 40 倍。
 
 本 fork 没有修改 Whisper 权重，也未重新评估 GPU 吞吐量或识别准确率。下方的官方速度对比属于上游测试，不能视作本 fork 的新增收益。测试与测量方法见 [逐项审查报告](docs/reliability-performance-review.md)。
 
