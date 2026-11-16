@@ -45,3 +45,11 @@ SpeechTimestampsMap uses binary search for both start/end boundaries, preserving
 Chunk collection now rejects negative, reversed, out-of-bounds, boolean or fractional sample offsets before slicing, avoiding silent truncation/negative indexing and mismatched duration metadata. Valid NumPy integer offsets and zero-length chunks retain their behavior. Eight invalid-input regression cases failed before the change; two valid-input controls passed.
 
 Full suite after the follow-up: **73 passed**. Black, isort, Flake8 and diff checks passed.
+
+## Follow-up: PCM normalization memory and empty VAD input
+
+Audio decoding now scales the newly allocated float32 buffer in place, removing a second full-size float32 temporary without modifying the PCM source. Real mono/stereo WAV tests cover signed 16-bit extrema and exact normalized values. For a 60-second 16 kHz mono PCM buffer, tracemalloc peak allocation during normalization was 7,680,828 bytes before and 3,840,300 after; this excludes other decoder/model memory.
+
+Empty audio now returns no speech timestamps without initializing the VAD model. Direct SileroVADModel empty batches return a float32 probability array of shape (0,) without invoking the ONNX session. Regression tests compare the empty probability shape/dtype against real model output and verify zero session calls. Both empty-input tests failed before the fix.
+
+Full suite after the follow-up: **77 passed**; Black, isort, Flake8 and diff checks passed.
