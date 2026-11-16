@@ -295,3 +295,7 @@ If you are comparing the performance against other Whisper implementations, you 
 ```bash
 OMP_NUM_THREADS=4 python3 my_script.py
 ```
+
+## Fork reliability review
+
+See [the review and validation report](docs/reliability-performance-review.md) for this branch's changes, local microbenchmarks, and deployment boundaries.
